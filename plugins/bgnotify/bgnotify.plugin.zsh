@@ -54,6 +54,7 @@ bgnotify_begin() {
 }
 
 bgnotify_end() {
+  echo $NTF
   didexit=$?
   elapsed=$(( EPOCHSECONDS - bgnotify_timestamp ))
   past_threshold=$(( elapsed >= bgnotify_threshold ))
