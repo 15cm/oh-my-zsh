@@ -1,6 +1,17 @@
+# Set ZSH_CACHE_DIR to the path where cache files should be created
+# or else we will use the default cache/
+if [[ -z "$ZSH_CACHE_DIR" ]]; then
+  ZSH_CACHE_DIR="$ZSH/cache"
+fi
+
+# Migrate .zsh-update file to $ZSH_CACHE_DIR
+if [ -f ~/.zsh-update ] && [ ! -f ${ZSH_CACHE_DIR}/.zsh-update ]; then
+    mv ~/.zsh-update ${ZSH_CACHE_DIR}/.zsh-update
+fi
+
 # Check for updates on initial load...
 if [ "$DISABLE_AUTO_UPDATE" != "true" ]; then
-  env ZSH=$ZSH DISABLE_UPDATE_PROMPT=$DISABLE_UPDATE_PROMPT zsh -f $ZSH/tools/check_for_upgrade.sh
+  env ZSH=$ZSH ZSH_CACHE_DIR=$ZSH_CACHE_DIR DISABLE_UPDATE_PROMPT=$DISABLE_UPDATE_PROMPT zsh -f $ZSH/tools/check_for_upgrade.sh
 fi
 
 # Initializes Oh My Zsh
@@ -11,18 +22,10 @@ fpath=($ZSH/functions $ZSH/completions $fpath)
 # Load all stock functions (from $fpath files) called below.
 autoload -U compaudit compinit
 
-: ${ZSH_DISABLE_COMPFIX:=true}
-
 # Set ZSH_CUSTOM to the path where your custom config files
 # and plugins exists, or else we will use the default custom/
 if [[ -z "$ZSH_CUSTOM" ]]; then
     ZSH_CUSTOM="$ZSH/custom"
-fi
-
-# Set ZSH_CACHE_DIR to the path where cache files should be created
-# or else we will use the default cache/
-if [[ -z "$ZSH_CACHE_DIR" ]]; then
-  ZSH_CACHE_DIR="$ZSH/cache"
 fi
 
 
@@ -41,6 +44,7 @@ is_plugin() {
   test -f $base_dir/plugins/$name/$name.plugin.zsh \
     || test -f $base_dir/plugins/$name/_$name
 }
+
 # Add all defined plugins to fpath. This must be done
 # before running compinit.
 for plugin ($plugins); do
@@ -48,6 +52,8 @@ for plugin ($plugins); do
     fpath=($ZSH_CUSTOM/plugins/$plugin $fpath)
   elif is_plugin $ZSH $plugin; then
     fpath=($ZSH/plugins/$plugin $fpath)
+  else
+    echo "[oh-my-zsh] plugin '$plugin' not found"
   fi
 done
 
@@ -64,32 +70,14 @@ if [ -z "$ZSH_COMPDUMP" ]; then
   ZSH_COMPDUMP="${ZDOTDIR:-${HOME}}/.zcompdump-${SHORT_HOST}-${ZSH_VERSION}"
 fi
 
-# On slow systems, checking the cached .zcompdump file to see if it must be 
-# regenerated adds a noticable delay to zsh startup.  This little hack restricts 
-# it to once a day.  It should be pasted into your own completion file.
-#https://gist.github.com/ctechols/ca1035271ad134841284
-setopt extendedglob
 if [[ $ZSH_DISABLE_COMPFIX != true ]]; then
-  # If completion insecurities exist, warn the user without enabling completions.
-  if ! compaudit &>/dev/null; then
-    # This function resides in the "lib/compfix.zsh" script sourced above.
-    handle_completion_insecurities
-  # Else, enable and cache completions to the desired file.
-  else
-    if [[ -n "${ZSH_COMPDUMP}"(#qN.mh+24) ]]; then
-      compinit -d "${ZSH_COMPDUMP}"
-      compdump
-    else
-      compinit -C
-    fi
-  fi
+  # If completion insecurities exist, warn the user
+  handle_completion_insecurities
+  # Load only from secure directories
+  compinit -i -C -d "${ZSH_COMPDUMP}"
 else
-  if [[ -n "${ZSH_COMPDUMP}"(#qN.mh+24) ]]; then
-    compinit -i -d "${ZSH_COMPDUMP}"
-    compdump
-  else
-    compinit -C
-  fi
+  # If the user wants it, load from all found directories
+  compinit -u -C -d "${ZSH_COMPDUMP}"
 fi
 
 # Load all of the plugins that were defined in ~/.zshrc
