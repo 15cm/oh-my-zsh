@@ -19,3 +19,6 @@
 [submodule "custom/plugins/alias-tips"]
 	path = custom/plugins/alias-tips
 	url = https://github.com/djui/alias-tips
+[submodule "custom/plugins/navi"]
+	path = custom/plugins/navi
+	url = https://github.com/15cm/navi
